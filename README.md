@@ -4,6 +4,17 @@ An end-to-end data cleaning and validation project using the Olist e-commerce da
 
 The project demonstrates how raw, inconsistent datasets can be inspected, assessed, cleaned, validated, and transformed into analysis-ready data and a structured SQLite database using Python and pandas.
 
+## Data Source
+
+Brazilian E-Commerce Public Dataset by Olist
+
+Source: [Kaggle, Provided by Olist](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce)
+
+The dataset was provided by Olist and contains approximately 100,000
+Brazilian e-commerce orders from 2016 to 2018.
+
+License: CC BY-NC-SA 4.0
+
 ## Project Goals
 
 The goal of this project is to build a reproducible data-cleaning workflow rather than simply produce a cleaned dataset.
