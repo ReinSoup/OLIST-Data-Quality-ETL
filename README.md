@@ -8,7 +8,7 @@ The project demonstrates how raw, inconsistent datasets can be inspected, assess
 
 Brazilian E-Commerce Public Dataset by Olist
 
-Source: [Kaggle](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce)
+Source: [Kaggle, Provided by Olist](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce)
 
 The dataset was provided by Olist and contains approximately 100,000
 Brazilian e-commerce orders from 2016 to 2018.
