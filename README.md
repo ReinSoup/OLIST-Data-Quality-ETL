@@ -87,31 +87,58 @@ The original raw datasets are included in `data/raw/` so that the complete trans
 
 The raw files are kept unchanged.
 
+
+## Inspection Conclusion
+
+The raw-data inspection phase is complete across all 9 Olist datasets.
+
+Key findings include:
+
+- Missing values in several datasets, including order dates and product information
+- Date and timestamp columns stored as strings
+- Exact duplicate records in the geolocation dataset
+- Suspicious repeated review IDs
+- Inconsistent seller geographic information
+- A small number of suspicious geolocation coordinates
+- Two misspelled product column names
+- A small number of product categories without English translations
+- A small number of payment records requiring further investigation
+
+Not every unusual value is an error. I assessed issues in the context of each table's structure and relationships before deciding whether they should be cleaned, investigated further, or left unchanged.
+
+Detailed findings and reasoning are documented in the raw-data inspection notebook rather than duplicated here.
+
 ## Project Status
 
 🚧 In progress
 
-The project is being developed progressively, with each stage of the data-cleaning workflow documented and validated.
+Current stage: Raw Data Inspection ✓
 
-Inspecting raw datasets using a "Two level inspection process"
-1. inspect the entire dataset at a high level
-2. inspect each csv individually 
+The raw-data inspection phase has been completed across all 9 datasets using a two-level inspection process:
 
+1. Inspect the entire collection of datasets at a high level
+2. Inspect each CSV individually
+
+The project is now moving into:
+
+```text
 PHASE 1
-Global inspection
-        ↓
-Understand all tables
+Global inspection ✓
         ↓
 PHASE 2
-Detailed quality assessment
-        ↓
-Identify and document problems
+Detailed quality assessment ✓
         ↓
 PHASE 3
-Cleaning
+Cleaning ← Current next stage
         ↓
 PHASE 4
 Validation
+        ↓
+Cleaned Data
+        ↓
+SQLite Database
+```
+
 
 ## Author
 
