@@ -99,7 +99,7 @@ The `database` directory contains the SQLite database created from the cleaned d
 Notebook:
 
 ```text
-[Raw Data Inspection](notebooks/01_Raw_Data_Inspection.ipynb)
+[Raw Data Inspection](https://github.com/ReinSoup/OLIST-Data-Quality-Pipeline/blob/main/notebooks/01_Raw_Data_Inspection.ipynb)
 ```
 
 I inspected all nine datasets before modifying any data.
