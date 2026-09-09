@@ -1,4 +1,4 @@
-# Olist Data Quality Pipeline
+# Olist E-Commerce Data Quality & ETL Pipeline
 
 An end-to-end data quality pipeline for nine related Olist e-commerce datasets, covering raw data inspection, quality assessment, defensible cleaning, validation, and SQLite database creation.
 
