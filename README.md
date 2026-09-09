@@ -97,10 +97,7 @@ The `database` directory contains the SQLite database created from the cleaned d
 # 1. Raw Data Inspection
 
 Notebook:
-
-```text
 [Raw Data Inspection](https://github.com/ReinSoup/OLIST-Data-Quality-Pipeline/blob/main/notebooks/01_Raw_Data_Inspection.ipynb)
-```
 
 I inspected all nine datasets before modifying any data.
 
@@ -146,9 +143,7 @@ This distinction prevented me from treating every unusual value as an error.
 
 Notebook:
 
-```text
 [Data Quality Assessment](notebooks/02_data_quality_assessment.ipynb)
-```
 
 I converted the inspection findings into explicit decisions before changing the data.
 
