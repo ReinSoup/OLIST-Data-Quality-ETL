@@ -143,7 +143,7 @@ This distinction prevented me from treating every unusual value as an error.
 
 Notebook:
 
-[Data Quality Assessment](notebooks/02_data_quality_assessment.ipynb)
+[Data Quality Assessment](https://github.com/ReinSoup/OLIST-Data-Quality-Pipeline/blob/main/notebooks/02_Data_Quality_Assessment.ipynb)
 
 I converted the inspection findings into explicit decisions before changing the data.
 
@@ -605,11 +605,9 @@ I preserved these categories rather than inventing translations.
 
 Notebook:
 
-```text
-[Cleaning](notebooks/03_data_cleaning.ipynb)
-```
+[Cleaning](https://github.com/ReinSoup/OLIST-Data-Quality-Pipeline/blob/main/notebooks/03_Data_Cleaning.ipynb)
 
-I created the cleaning notebook only after completing the inspection and assessment stages.
+I started the cleaning process only after completing the inspection and assessment stages.
 
 The cleaning stage applied the decisions I had already made.
 
@@ -728,9 +726,8 @@ The most important decision was not what I removed. It was what I deliberately c
 
 Notebook:
 
-```text
-[Validation](notebooks/04_data_validation.ipynb)
-```
+[Validation](https://github.com/ReinSoup/OLIST-Data-Quality-Pipeline/blob/main/notebooks/04_Validation.ipynb)
+
 
 I did not consider the project finished simply because the cleaning code executed without errors.
 
@@ -773,9 +770,7 @@ This confirmed that the cleaning stage applied the intended changes without acci
 
 Notebook:
 
-```text
-[SQLITE Database](notebooks/05_sqlite_database.ipynb)
-```
+[SQLITE Database](https://github.com/ReinSoup/OLIST-Data-Quality-Pipeline/blob/main/notebooks/05_Database_Creation.ipynb)
 
 I created a SQLite database from the cleaned datasets using Python's `sqlite3` module and pandas.
 
