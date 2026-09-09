@@ -1,38 +1,32 @@
 # Olist Data Quality Pipeline
 
-A Python and pandas data-cleaning project built around the Brazilian E-Commerce Public Dataset by Olist.
+An end-to-end data quality pipeline for nine related Olist e-commerce datasets, covering raw data inspection, quality assessment, defensible cleaning, validation, and SQLite database creation.
 
-I worked through the dataset as a complete data-quality pipeline: inspecting the raw data, assessing quality issues, applying documented cleaning decisions, validating the cleaned outputs, and creating and validating a SQLite database.
+The project focuses on a practical question: what should actually be changed in messy data, and what should be preserved because the correct value cannot be justified?
 
-## Project Goal
+## Key Results
 
-The goal was not to remove as much "messy" data as possible. I first established what each table represented, investigated potential quality issues, and then changed only what I could justify.
-
-The workflow was:
-
-```text
-Raw Data
-   ->
-Inspection
-   ->
-Quality Assessment
-   ->
-Cleaning
-   ->
-Validation
-   ->
-Cleaned Data
-   ->
-SQLite Database
-   ->
-Database Validation
-```
+| Metric | Result |
+|---|---:|
+| Related source tables | 9 |
+| Orders | 99,441 |
+| Order items | 112,650 |
+| Exact geolocation duplicates removed | 261,831 |
+| Cleaned geolocation rows | 738,332 |
+| Product records | 32,951 |
+| SQLite tables created | 9 |
 
 ## Dataset
 
-I used the Brazilian E-Commerce Public Dataset by Olist, containing approximately 100,000 orders from 2016–2018 across nine related datasets.
+I used the Brazilian E-Commerce Public Dataset by Olist, covering approximately 100,000 orders from 2016–2018 across nine related datasets.
 
 Source: [Kaggle - Brazilian E-Commerce Public Dataset by Olist](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce)
+
+## Data Model
+
+The dataset is relational rather than a collection of independent CSV files. The ER diagram below shows the main relationships between the nine tables.
+
+![Olist ER Diagram](OLIST_ER_Diagram.png)
 
 ## Tools
 
@@ -41,6 +35,144 @@ Source: [Kaggle - Brazilian E-Commerce Public Dataset by Olist](https://www.kagg
 - SQLite
 - Jupyter Notebook
 - Git / GitHub
+
+## Project Workflow
+
+### 1. Raw Data Inspection
+
+[Open notebook](https://github.com/ReinSoup/OLIST-Data-Quality-Pipeline/blob/main/notebooks/01_Raw_Data_Inspection.ipynb)
+
+I inspected all nine source tables before modifying the data, including dimensions, data types, missing values, duplicates, identifier uniqueness, relationships, and suspicious values.
+
+Key findings included 261,831 exact duplicate geolocation rows, 8 delivered orders missing customer delivery dates, repeated review IDs that were not safe to remove automatically, 610 products missing category information, and several geographic inconsistencies that required caution rather than blind correction.
+
+### 2. Data Quality Assessment
+
+[Open notebook](https://github.com/ReinSoup/OLIST-Data-Quality-Pipeline/blob/main/notebooks/02_Data_Quality_Assessment.ipynb)
+
+I converted the inspection findings into explicit decisions before cleaning.
+
+The main rule was:
+
+> An unusual value is not automatically a bad value.
+
+I classified findings as clear errors, legitimate structural characteristics, ambiguous values worth preserving, or anomalies that could not be corrected safely without an authoritative source.
+
+### 3. Data Cleaning
+
+[Open notebook](https://github.com/ReinSoup/OLIST-Data-Quality-Pipeline/blob/main/notebooks/03_Data_Cleaning.ipynb)
+
+The cleaning stage applied only the decisions supported by the assessment.
+
+| Issue | Action |
+|---|---|
+| Exact duplicate geolocation rows | Removed |
+| Order timestamp strings | Converted to datetime |
+| Review timestamp strings | Converted to datetime |
+| Misspelled product columns | Renamed |
+| Delivered orders missing delivery dates | Preserved |
+| Repeated review IDs | Preserved |
+| Zero-installment credit-card records | Preserved |
+| Missing product categories | Preserved |
+| Missing product dimensions | Preserved |
+| Geographic inconsistencies | Preserved |
+| Untranslated categories | Preserved |
+
+The cleaned datasets were exported to `data/cleaned/` with `index=False`, while the raw source data remained separate.
+
+### 4. Data Validation
+
+[Open notebook](https://github.com/ReinSoup/OLIST-Data-Quality-Pipeline/blob/main/notebooks/04_Validation.ipynb)
+
+I reloaded the cleaned CSV files and independently checked that the intended transformations had occurred without destroying information that was deliberately preserved.
+
+Validation confirmed:
+
+- Exact geolocation duplicates were removed.
+- The cleaned geolocation table contains 738,332 rows.
+- Corrected product column names are present.
+- Expected missing values and ambiguous records remain.
+- `orders.order_id`, `products.product_id`, and `sellers.seller_id` remain unique.
+- `order_items` contains no duplicate `order_id + order_item_id` combinations.
+- Repeated review IDs were preserved.
+
+A key validation lesson was that CSV files do not preserve pandas dtypes, so datetime columns must be parsed again after reloading.
+
+### 5. SQLite Database
+
+[Open notebook](https://github.com/ReinSoup/OLIST-Data-Quality-Pipeline/blob/main/notebooks/05_Database_Creation.ipynb)
+
+I created `data/database/olist.db` from the cleaned datasets using Python's `sqlite3` module and pandas.
+
+The database contains nine tables:
+
+| Table | Rows | Columns |
+|---|---:|---:|
+| `customers` | 99,441 | 5 |
+| `geolocation` | 738,332 | 5 |
+| `orders` | 99,441 | 8 |
+| `order_items` | 112,650 | 7 |
+| `order_payments` | 103,886 | 5 |
+| `order_reviews` | 99,224 | 7 |
+| `products` | 32,951 | 9 |
+| `sellers` | 3,095 | 4 |
+| `product_category_name_translation` | 71 | 2 |
+
+I validated table schemas with `PRAGMA table_info()`, checked row counts with `COUNT(*)`, and verified that the cleaned data relationships were preserved.
+
+## Key Data Quality Findings
+
+### Geolocation duplication
+
+261,831 exact duplicate rows were removed from the geolocation table, reducing it from 1,000,163 rows to 738,332.
+
+I removed only exact duplicates. Repeated ZIP prefixes were preserved because multiple geographic records for a ZIP prefix are part of the source structure.
+
+### Missing delivery dates
+
+8 orders were marked as `delivered` but had no customer delivery date.
+
+I preserved them because the correct dates could not be reconstructed reliably.
+
+### Repeated review IDs
+
+789 `review_id` values appeared more than once across 1,603 rows.
+
+I preserved them because the repeated IDs were associated with different orders, and removing rows by `review_id` alone could discard valid relationships.
+
+### Missing product information
+
+610 products were missing category and several descriptive fields.
+
+2 products were missing all four physical measurements.
+
+I preserved these missing values rather than inventing information.
+
+### Geographic inconsistencies
+
+Potential ZIP, city, state, and coordinate inconsistencies were identified in customer, seller, and geolocation data.
+
+I treated these as anomalies requiring authoritative verification rather than making unsupported corrections.
+
+## Relational Data Understanding
+
+The project also involved distinguishing genuine relational repetition from accidental duplication.
+
+An order can legitimately have multiple:
+
+- `order_items`
+- `order_payments`
+- `order_reviews`
+
+Therefore, repeated `order_id` values in child tables are not automatically duplicates.
+
+For `order_items`, the meaningful identifier is the composite key:
+
+```text
+order_id + order_item_id
+```
+
+This reasoning was important when validating the data and deciding which duplicate checks were appropriate.
 
 ## Repository Structure
 
@@ -59,326 +191,43 @@ OLIST-Data-Quality-Pipeline/
 │   ├── 04_Validation.ipynb
 │   └── 05_Database_Creation.ipynb
 │
-├── src/
+├── OLIST_ER_Diagram.png
+├── .gitignore
+├── LICENSE
 ├── requirements.txt
 └── README.md
 ```
 
-# Project Workflow
-
-## 1. Raw Data Inspection
-
-[Raw Data Inspection](https://github.com/ReinSoup/OLIST-Data-Quality-Pipeline/blob/main/notebooks/01_Raw_Data_Inspection.ipynb)
-
-I inspected all nine source tables before modifying the data.
-
-The inspection focused on:
-
-- Dataset dimensions
-- Column names and data types
-- Missing values
-- Duplicate records
-- Identifier uniqueness
-- Key relationships between tables
-- Suspicious values and inconsistencies
-
-The main purpose was to understand the structure and meaning of the data before deciding what, if anything, needed to change.
-
-### Key findings
-
-- `customers`: no missing values; `customer_id` is unique; customer location data contained potential ZIP/city inconsistencies.
-- `orders`: missing timestamps were mostly associated with non-delivered orders, with 8 delivered orders missing the customer delivery date.
-- `order_items`: `order_id` legitimately repeats because orders can contain multiple items; `order_id + order_item_id` is the meaningful composite key.
-- `order_payments`: no missing values; multiple payment records can belong to one order; 2 credit-card records had zero installments with nonzero payment values.
-- `order_reviews`: missing comments were present; multiple reviews can belong to one order; repeated `review_id` values required investigation rather than automatic deletion.
-- `products`: 610 products were missing category and several descriptive fields; 2 products were missing all physical measurements; two column names contained spelling errors.
-- `sellers`: no missing values; potential ZIP/state inconsistencies were identified.
-- `geolocation`: 261,831 exact duplicate rows were found; coordinate anomalies were also screened.
-- `product_category_name_translation`: 71 categories were present, with two unique categories lacking English translations.
-
-This inspection provided the evidence for the next stage rather than treating every unusual value as an error.
-
----
-
-## 2. Data Quality Assessment
-
-[Data Quality Assessment](https://github.com/ReinSoup/OLIST-Data-Quality-Pipeline/blob/main/notebooks/02_Data_Quality_Assessment.ipynb)
-
-I translated the inspection findings into explicit quality decisions before changing the data.
-
-The main principle was:
-
-> An unusual value is not automatically a bad value.
-
-I considered whether an issue was:
-
-1. A clear data-quality problem that could be corrected safely.
-2. An ambiguity that should be investigated but preserved.
-3. A legitimate structural characteristic of the dataset.
-4. An anomaly that could not be corrected reliably without an authoritative source.
-
-### Main assessment decisions
-
-| Finding | Decision | Reason |
-|---|---|---|
-| Exact duplicate geolocation rows | Remove | Exact copies contain no additional information |
-| Order timestamp strings | Convert | Dates should be represented as datetime values |
-| Review timestamp strings | Convert | Dates should be represented as datetime values |
-| Misspelled product columns | Rename | Correct schema naming without changing the data |
-| 8 delivered orders missing delivery date | Preserve | The correct dates could not be reconstructed reliably |
-| Repeated review IDs | Preserve | Removing by `review_id` could discard order relationships |
-| 2 zero-installment credit-card records | Preserve | The meaning of zero installments was unclear |
-| Missing product categories | Preserve | No reliable category could be inferred |
-| Missing product dimensions | Preserve | No reliable measurements could be inferred |
-| Geographic inconsistencies | Preserve | No authoritative correction was available |
-| Untranslated categories | Preserve | I did not invent translations |
-
-The assessment stage established the rules that the cleaning notebook would apply.
-
----
-
-## 3. Data Cleaning
-
-[Data Cleaning](https://github.com/ReinSoup/OLIST-Data-Quality-Pipeline/blob/main/notebooks/03_Data_Cleaning.ipynb)
-
-I applied the decisions from the quality-assessment stage to the raw DataFrames.
-
-### Cleaning performed
-
-#### Geolocation duplicates
-
-I removed exact duplicate rows:
-
-```python
-geolocation = geolocation.drop_duplicates()
-```
-
-This reduced the table from 1,000,163 rows to 738,332 rows.
-
-I did not remove repeated ZIP prefixes because multiple geographic records for a ZIP prefix are part of the source data structure.
-
-#### Order timestamps
-
-I converted the order timestamp columns using:
-
-```python
-orders[date_columns] = orders[date_columns].apply(pd.to_datetime)
-```
-
-Missing timestamps were retained where the source did not provide them.
-
-#### Product column names
-
-I corrected the two spelling errors:
-
-```text
-product_name_lenght
--> product_name_length
-
-product_description_lenght
--> product_description_length
-```
-
-#### Review timestamps
-
-I converted the review date columns to datetime.
-
-#### Cleaned data export
-
-I exported the cleaned DataFrames to `data/cleaned/` using `to_csv(..., index=False)`.
-
-I kept the raw and cleaned data separate so that the original source data remained untouched.
-
-### What I deliberately did not clean
-
-I did not fabricate delivery dates, product categories, product measurements, translations, geographic values, or payment information.
-
-I also did not remove repeated review IDs simply because they looked duplicated.
-
-This was an important part of the cleaning process: preserving uncertain information is often safer than making an unsupported correction.
-
----
-
-## 4. Data Validation
-
-[Validation](https://github.com/ReinSoup/OLIST-Data-Quality-Pipeline/blob/main/notebooks/04_Validation.ipynb)
-
-I reloaded the cleaned CSV files and checked whether the intended transformations were actually present.
-
-Validation included:
-
-- Confirming exact geolocation duplicates were removed.
-- Confirming the geolocation table contains 738,332 rows.
-- Confirming the corrected product column names exist.
-- Confirming the old misspellings are gone.
-- Converting date columns again to verify they are valid datetime values.
-- Confirming the expected missing-date counts remain.
-- Confirming the 8 delivered orders with missing customer delivery dates remain.
-- Confirming repeated review IDs were preserved.
-- Confirming the two zero-installment credit-card records remain.
-- Confirming the 610 missing product categories remain.
-- Confirming the two products missing all physical dimensions remain.
-- Confirming `orders.order_id` remains unique.
-- Confirming `products.product_id` remains unique.
-- Confirming `sellers.seller_id` remains unique.
-- Confirming there are no duplicate `order_id + order_item_id` combinations in `order_items`.
-
-### Important validation lesson
-
-CSV files do not preserve pandas DataFrame dtypes.
-
-Therefore, date columns become strings again when CSV files are reloaded unless they are parsed explicitly.
-
-Validation therefore checked both the values and whether the cleaned data could be interpreted correctly.
-
----
-
-## 5. SQLite Database
-
-[Database Creation](https://github.com/ReinSoup/OLIST-Data-Quality-Pipeline/blob/main/notebooks/05_Database_Creation.ipynb)
-
-I created a SQLite database from the cleaned datasets using Python's `sqlite3` module and pandas.
-
-Database:
-
-```text
-data/database/olist.db
-```
-
-I loaded each cleaned DataFrame into its own SQLite table using `DataFrame.to_sql()`.
-
-The database contains nine tables:
-
-| Table | Rows | Columns |
-|---|---:|---:|
-| `customers` | 99,441 | 5 |
-| `geolocation` | 738,332 | 5 |
-| `orders` | 99,441 | 8 |
-| `order_items` | 112,650 | 7 |
-| `order_payments` | 103,886 | 5 |
-| `order_reviews` | 99,224 | 7 |
-| `products` | 32,951 | 9 |
-| `sellers` | 3,095 | 4 |
-| `product_category_name_translation` | 71 | 2 |
-
-### Database validation
-
-I verified that:
-
-- All nine tables were created.
-- Table row counts match the cleaned datasets.
-- Expected columns are present.
-- Key identifiers remain valid.
-- The `order_id + order_item_id` relationship remains valid.
-- Cleaning decisions were preserved in the database.
-- SQL queries execute successfully.
-- Date columns are represented as `TIMESTAMP` in the SQLite schema.
-
-I used SQLite's `PRAGMA table_info()` to inspect table structures and `COUNT(*)` to verify row counts.
-
----
-
-# Key Data Quality Findings
-
-The most significant quality findings were:
-
-### 1. Geolocation duplicates
-
-261,831 exact duplicate rows were identified and removed.
-
-The cleaned table contains 738,332 rows.
-
-### 2. Missing delivery dates
-
-8 orders were marked as `delivered` but had no customer delivery date.
-
-I preserved these records because there was no reliable way to reconstruct the missing dates.
-
-### 3. Repeated review IDs
-
-789 `review_id` values appeared more than once across 1,603 rows.
-
-I preserved them because the repeated IDs were associated with different orders, and removing duplicates by `review_id` alone could discard relationships.
-
-### 4. Missing product information
-
-610 products were missing category and several descriptive fields.
-
-2 products were missing all four physical measurements.
-
-I preserved these missing values rather than inventing information.
-
-### 5. Geographic inconsistencies
-
-Potential ZIP, city, state, and coordinate inconsistencies were identified.
-
-I treated these as anomalies requiring authoritative verification rather than automatically correcting them.
-
----
-
-# Relational Data Understanding
-
-One of the most important parts of the project was learning to interpret the relationships between tables.
-
-For example:
-
-```text
-orders
-   │
-   ├── order_items
-   ├── order_payments
-   └── order_reviews
-```
-
-These are not all one-to-one relationships.
-
-An order can have:
-
-- Multiple items
-- Multiple payment records
-- Multiple reviews
-
-Therefore, repeated `order_id` values in child tables are often expected.
-
-For `order_items`, the meaningful key is:
-
-```text
-order_id + order_item_id
-```
-
-For reviews, I learned that a direct merge can legitimately produce repeated order rows when an order has multiple reviews.
-
-This prevented me from confusing legitimate relational structure with duplicate data.
-
----
-
-# Key Technical Skills
-
-Through the project I practiced:
-
-- Loading multiple CSV files with pandas
-- Using `glob` to discover files
-- Inspecting DataFrames systematically
-- Checking missing values and duplicates
-- Testing identifier uniqueness
-- Checking relationships between datasets
-- Using `.merge()`, `.groupby()`, `.isin()`, and boolean filtering
-- Removing exact duplicates with `.drop_duplicates()`
-- Renaming columns with `.rename()`
-- Converting strings to datetime with `pd.to_datetime()`
-- Exporting cleaned CSV files with `.to_csv()`
-- Working with SQLite through `sqlite3`
-- Loading DataFrames into SQL tables with `.to_sql()`
-- Querying SQLite with `pd.read_sql()`
-- Inspecting schemas with `PRAGMA table_info()`
-- Validating row counts with SQL `COUNT(*)`
+## How to Reproduce
+
+1. Download the Olist dataset from Kaggle.
+2. Place the raw CSV files in `data/raw/`.
+3. Install the project dependencies.
+4. Run the notebooks in order from `01` through `05`.
+5. Review the cleaned CSV outputs in `data/cleaned/` and the SQLite database in `data/database/`.
+
+The notebooks contain the inspection, reasoning, cleaning code, validation checks, and database creation steps.
+
+## Technical Skills Demonstrated
+
+- pandas DataFrame inspection and filtering
+- Missing-value and duplicate analysis
+- Identifier uniqueness checks
+- Cross-table relationship validation
+- `.merge()`, `.groupby()`, `.isin()`, and boolean filtering
+- `.drop_duplicates()` and `.rename()`
+- Datetime conversion with `pd.to_datetime()`
+- CSV export with `.to_csv()`
+- SQLite database creation with `sqlite3`
+- DataFrame loading with `.to_sql()`
+- SQL querying with `pd.read_sql()`
+- Schema inspection with `PRAGMA table_info()`
+- Validation with SQL `COUNT(*)`
 - Reasoning about one-to-many relationships and composite keys
 
-I focused on using straightforward, readable Python rather than introducing unnecessary abstraction.
+I kept the implementation straightforward and readable rather than adding unnecessary abstraction.
 
----
-
-# Project Status
+## Project Status
 
 | Stage | Status |
 |---|---|
@@ -390,24 +239,19 @@ I focused on using straightforward, readable Python rather than introducing unne
 | SQLite database creation | Complete |
 | SQLite validation | Complete |
 
-The data-quality pipeline is complete through SQLite database creation and validation.
+The current scope ends at validated cleaned datasets and a validated SQLite database. Downstream analytics, dashboards, and machine-learning modeling are outside the scope of this project.
 
-Analysis, dashboards, and machine-learning modeling are outside the current scope and are not claimed as completed stages of this project.
+## Final Outcome
 
----
-
-# Final Outcome
-
-I started with nine related raw Olist CSV files and built a documented data-quality pipeline that:
+I started with nine related raw Olist CSV files and built a documented workflow that:
 
 1. Inspected the source data.
-2. Identified and measured quality issues.
-3. Assessed whether each issue required action.
-4. Applied only defensible cleaning operations.
-5. Preserved ambiguous information instead of inventing corrections.
-6. Exported cleaned datasets.
-7. Independently validated the cleaned outputs.
-8. Built a SQLite database from the cleaned data.
-9. Validated the database structure and contents.
+2. Measured and assessed data-quality issues.
+3. Applied only defensible cleaning operations.
+4. Preserved ambiguous information instead of inventing corrections.
+5. Exported cleaned datasets.
+6. Independently validated the cleaned outputs.
+7. Built a SQLite database from the cleaned data.
+8. Validated the database structure and contents.
 
-The final result is a reproducible, documented workflow from raw e-commerce data to validated cleaned datasets and a queryable SQLite database.
+The result is a reproducible data-quality workflow from raw e-commerce data to validated cleaned datasets and a queryable SQLite database.
